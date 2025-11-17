@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/vipulitinfra/hello-tops.git'
+                git branch: 'main', url: 'https://github.com/kaushal-analyst/kaushal-CI-CD.git'
             }
         }
 
