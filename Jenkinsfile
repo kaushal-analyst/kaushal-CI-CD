@@ -30,6 +30,14 @@ pipeline {
                 }
             }
         }
+stage('Stop Old Container') {
+    steps {
+        sh """
+        docker ps -q --filter "name=flask_student" | grep -q . && docker stop flask_student || echo 'No running container'
+        docker ps -aq --filter "name=flask_student" | grep -q . && docker rm flask_student || echo 'No container to remove'
+        """
+    }
+}
 
         stage('Push to DockerHub') {
             steps {
