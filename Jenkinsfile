@@ -3,47 +3,62 @@ pipeline {
 
     environment {
         DOCKERHUB_CREDENTIALS = 'dockerhub-credentials'
-        IMAGE_NAME = 'Kaushal/hello-tops:latest'
+        IMAGE_NAME = 'kaushal/hello-tops'
+        CONTAINER_NAME = 'hello-tops-container'
     }
 
     stages {
+
         stage('Checkout') {
             steps {
-                git branch: 'master', url: 'https://github.com/kaushal-analyst/kaushal-CI-CD.git'
+                git branch: 'master',
+                    url: 'https://github.com/kaushal-analyst/kaushal-CI-CD.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build("${IMAGE_NAME}")
+                    sh "docker build -t ${IMAGE_NAME}:latest ."
                 }
             }
         }
 
-        stage('Test Docker Container') {
+        stage('Stop Old Container') {
             steps {
                 script {
-                    docker.image("${IMAGE_NAME}").run('-d -p 5000:5000')
-                    sh 'sleep 5'
-                    sh 'curl -f http://localhost:5000 || echo "Test failed"'
+                    sh """
+                    docker ps -q --filter "name=${CONTAINER_NAME}" | grep -q . && docker stop ${CONTAINER_NAME} || echo 'No running container'
+                    docker ps -aq --filter "name=${CONTAINER_NAME}" | grep -q . && docker rm ${CONTAINER_NAME} || echo 'No container to remove'
+                    """
                 }
             }
         }
-stage('Stop Old Container') {
-    steps {
-        sh """
-        docker ps -q --filter "name=flask_student" | grep -q . && docker stop flask_student || echo 'No running container'
-        docker ps -aq --filter "name=flask_student" | grep -q . && docker rm flask_student || echo 'No container to remove'
-        """
-    }
-}
+
+        stage('Run New Container') {
+            steps {
+                script {
+                    sh """
+                    docker run -d -p 5000:5000 --name ${CONTAINER_NAME} ${IMAGE_NAME}:latest
+                    """
+                }
+            }
+        }
+
+        stage('Test Application') {
+            steps {
+                script {
+                    sh "sleep 5"
+                    sh "curl -f http://localhost:5000"
+                }
+            }
+        }
 
         stage('Push to DockerHub') {
             steps {
                 script {
                     docker.withRegistry('', "${DOCKERHUB_CREDENTIALS}") {
-                        docker.image("${IMAGE_NAME}").push()
+                        sh "docker push ${IMAGE_NAME}:latest"
                     }
                 }
             }
@@ -51,8 +66,12 @@ stage('Stop Old Container') {
     }
 
     post {
-        always {
-            sh 'docker ps -a -q | xargs -r docker rm -f'
+        success {
+            echo "Pipeline completed successfully!"
+        }
+        failure {
+            echo "Pipeline failed! Check the logs."
         }
     }
 }
+
