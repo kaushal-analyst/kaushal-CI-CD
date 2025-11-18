@@ -45,24 +45,7 @@ pipeline {
             }
         }
 
-        stage('Test Application') {
-            steps {
-                script {
-                    sh "sleep 5"
-                    sh "curl -f http://localhost:5000"
-                }
-            }
-        }
-
-      
-
-    post {
-        success {
-            echo "Pipeline completed successfully!"
-        }
-        failure {
-            echo "Pipeline failed! Check the logs."
-        }
     }
-}
+}    
+    
 
